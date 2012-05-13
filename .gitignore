@@ -1,0 +1,7 @@
+*.xcodeproj/*.pbxuser
+*.xcodeproj/*.mode1v3
+*.xcodeproj/xcuserdata
+*.xcodeproj/project.xcworkspace/xcuserdata/
+build
+DerivedData
+Configuration.m
