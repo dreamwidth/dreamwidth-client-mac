@@ -40,6 +40,7 @@
 +(NSString *) encodeObject:(id)object;
 
 +(DWORequest *) requestTokenRequestFromURL:(NSURL*)url consumer:(DWOTokenPair*)consumerPair callback:(NSString*)callback;
++(DWORequest *) accessTokenRequestFromURL:(NSURL*)url consumer:(DWOTokenPair*)consumerPair requestToken:(DWOTokenPair*)requestPair verifier:(NSString*)verifier;
 +(NSString *) createRandomStringOfLength:(size_t)len;
 
 @end

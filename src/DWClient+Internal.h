@@ -29,7 +29,11 @@
 #import "DWClient.h"
 
 @class DWPendingAuthorization;
+@class AFHTTPRequestOperation;
 
 @interface DWClient (Internal)
-+(void)removePendingAuthorization:(DWPendingAuthorization*)auth;
+
+- (NSURL *)authorizeURLForToken:(DWOTokenPair*)pair;
+- (AFHTTPRequestOperation*)accessTokenOperationWithRequest:(DWOTokenPair*)pair andVerifier:(NSString*)verifier;
+
 @end

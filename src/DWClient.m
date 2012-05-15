@@ -33,6 +33,7 @@
 #import "DWORequest.h"
 
 #import "NSURL+QueryString.h"
+#import "NSString+QueryString.h"
 
 #import "AFHTTPRequestOperation.h"
 #import "DWPendingAuthorization.h"
@@ -52,7 +53,7 @@ static NSDictionary *pendingAuthorizations = nil;
 
 @synthesize baseEndpoint;
 @synthesize sslEnabled;
-
+@synthesize appProtocol;
 
 +(void)initialize {
     pendingAuthorizations = [[NSDictionary alloc] init];
@@ -63,6 +64,7 @@ static NSDictionary *pendingAuthorizations = nil;
         baseEndpoint = [endpoint copy];
         sslEnabled = ssl;
         tokenPair = [tokenPair_ retain];
+        appProtocol = nil;
     }
     return self;
 }
@@ -73,18 +75,29 @@ static NSDictionary *pendingAuthorizations = nil;
                                      path:path] autorelease];
 }
 
-- (NSURL *)authorizeURLForToken:(DWOTokenPair*)pair {
-    NSURL *rv = [self getAppURLWithPath:AUTHORIZE_ENDPOINT];
-    NSString *args = [NSString stringWithFormat:@"oauth_token=%@",
-                      [DWOClient encodeData:pair.token]];
-    return [rv URLByAppendingQueryString:args];
+- (void)authorizeUser:(DWAccessTokenCallback)callback begin:(DWBeginAccessTokenCallback)beginCallback {
+    if ( appProtocol == nil )
+        return callback(YES,nil);
+
+    NSURL *url = [self getAppURLWithPath:REQUEST_ENDPOINT];
+    NSString *callbackPath = [NSString stringWithFormat:@"%@://oauth_callback",appProtocol];
+    DWORequest *oReq = [DWOClient requestTokenRequestFromURL:url consumer:tokenPair callback:callbackPath];
+    
+    url = [oReq.url URLByAppendingQueryString:oReq.queryString];
+    NSURLRequest *uReq = [NSURLRequest requestWithURL:url cachePolicy:NSURLCacheStorageNotAllowed timeoutInterval:30];
+    
+    AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:uReq];
+    
+    DWPendingAuthorization *pending = [[DWPendingAuthorization alloc]
+                                       initWithClient:self operation:operation
+                                       accessCallback:callback
+                                       beginCallback:beginCallback outOfBand:NO];
+    [pending start];
+    [pending release];
+    [operation release];
 }
 
-- (void)authorizeUser:(DWAccessTokenCallback)callback {
-    callback(true,nil);
-}
-
-- (void)authorizeUser:(DWAccessTokenCallback)callback outOfBand:(DWBeginOOBCallback)oobCallback {
+- (void)authorizeUser:(DWAccessTokenCallback)callback outOfBand:(DWBeginAccessTokenCallback)oobCallback {
     NSURL *url = [self getAppURLWithPath:REQUEST_ENDPOINT];
     DWORequest *oReq = [DWOClient requestTokenRequestFromURL:url consumer:tokenPair callback:@"oob"];
     [oReq setObject:@"true" forParameter:@"simple_verifier"];
@@ -94,11 +107,39 @@ static NSDictionary *pendingAuthorizations = nil;
     
     AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:uReq];
 
+    
     DWPendingAuthorization *pending = [[DWPendingAuthorization alloc]
-            initWithClient:self operation:operation accessCallback:callback oobCallback:oobCallback];
+                                       initWithClient:self operation:operation
+                                       accessCallback:callback
+                                       beginCallback:oobCallback outOfBand:YES];
     [pending start];
     [pending release];
     [operation release];
+}
+
+-(BOOL)maybeHandleOpenURL:(NSURL *)url {
+    if ( url == nil || appProtocol == nil ) return NO;
+    if ( [url.scheme compare:appProtocol] != NSOrderedSame ) return NO;
+
+    NSString *path = url.path;
+    if ( [path compare:@"oauth_callback"] ) {
+        NSString *qStr = url.query;
+        if ( qStr == nil ) return NO;
+        NSDictionary *query = [qStr dictionaryFromQueryString];
+
+        NSData *token;
+        NSString *verifier;
+        NSString *arg = [query objectForKey:@"oauth_token"];
+        if ( arg == nil ) return NO;
+        token = [arg dataUsingEncoding:NSUTF8StringEncoding];
+
+        verifier = [query objectForKey:@"oauth_verifier"];
+        if ( verifier == nil ) return NO;
+        [DWPendingAuthorization gotVerifier:verifier forToken:token];
+        return YES;
+    }
+
+    return NO;
 }
 
 - (void)dealloc {
@@ -108,6 +149,9 @@ static NSDictionary *pendingAuthorizations = nil;
     [tokenPair release];
     tokenPair = nil;
 
+    [appProtocol release];
+    appProtocol = nil;
+
     [super dealloc];
 }
 
@@ -115,8 +159,22 @@ static NSDictionary *pendingAuthorizations = nil;
 
 @implementation DWClient (Internal)
 
-+(void)removePendingAuthorization:(DWPendingAuthorization*)auth {
+- (NSURL *)authorizeURLForToken:(DWOTokenPair*)pair {
+    NSURL *rv = [self getAppURLWithPath:AUTHORIZE_ENDPOINT];
+    NSString *args = [NSString stringWithFormat:@"oauth_token=%@",
+                      [DWOClient encodeData:pair.token]];
+    return [rv URLByAppendingQueryString:args];
+}
+
+- (AFHTTPRequestOperation*)accessTokenOperationWithRequest:(DWOTokenPair*)pair andVerifier:(NSString*)verifier {
+    NSURL *url = [self getAppURLWithPath:ACCESS_ENDPOINT];
+    DWORequest *oReq = [DWOClient accessTokenRequestFromURL:url consumer:tokenPair requestToken:pair verifier:verifier];
     
+    url = [oReq.url URLByAppendingQueryString:oReq.queryString];
+    NSURLRequest *uReq = [NSURLRequest requestWithURL:url cachePolicy:NSURLCacheStorageNotAllowed timeoutInterval:30];
+    
+    AFHTTPRequestOperation *operation = [[AFHTTPRequestOperation alloc] initWithRequest:uReq];
+    return [operation autorelease];
 }
 
 @end

@@ -33,27 +33,40 @@
 #import "DWClient+Internal.h"
 #import "NSString+QueryString.h"
 
+#import "DWOClient.h"
 #import "DWOTokenPair.h"
 
 static const NSTimeInterval VALIDITY = 600 * 2; // Double the valididty.
 
+static NSMutableDictionary *pendingAuthorizations = nil;
+
 @implementation DWPendingAuthorization
 
--(id)initWithClient:(DWClient*)client_ operation:(AFHTTPRequestOperation*)op accessCallback:(DWAccessTokenCallback)access_
-           oobCallback:(DWBeginOOBCallback)oob_ {
++(void)initialize {
+    pendingAuthorizations = [[NSMutableDictionary alloc] init];
+}
+
+-(id)initWithClient:(DWClient*)client_ operation:(AFHTTPRequestOperation*)op
+     accessCallback:(DWAccessTokenCallback)access_
+      beginCallback:(DWBeginAccessTokenCallback)begin_
+          outOfBand:(BOOL)oob_ {
+
     if ( ( self = [super init] ) ) {
         client = [client_ retain];
+        outOfBand = oob_;
         operation = [op retain];
-        accessCallback = access_ ? Block_copy(access_) : Block_copy((DWAccessTokenCallback)^{});
-        oobCallback = oob_ ? Block_copy(oob_) : Block_copy((DWBeginOOBCallback)^{});
+        accessCallback = access_ ? Block_copy(access_) : nil;
+        beginCallback = begin_ ? Block_copy(begin_) : nil;
         requestToken = nil;
         valid = NO;
         expireTimer = nil;
 
-        // This holds a copy to itself while it's running
-        [self retain];
+        [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *iOp_, id responseObject) {
+            if ( beginCallback == nil || accessCallback == nil ) {
+                [self release];
+                return;
+            }
 
-        [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
             if ( ! [responseObject isKindOfClass:[NSData class]] ) {
                 accessCallback(YES,nil);
                 [self release];
@@ -67,7 +80,7 @@ static const NSTimeInterval VALIDITY = 600 * 2; // Double the valididty.
             NSString *arg = [args objectForKey:@"oauth_callback_confirmed"];
 
             if ( arg == nil || [arg compare:@"true"] != NSOrderedSame ) {
-                accessCallback(YES, nil);
+                if ( accessCallback != nil ) accessCallback(YES, nil);
                 [self release];
                 return;
             }
@@ -83,25 +96,35 @@ static const NSTimeInterval VALIDITY = 600 * 2; // Double the valididty.
             
             arg = [args objectForKey:@"oauth_token_secret"];
             if ( arg == nil ) {
-                accessCallback(YES,nil);
+                accessCallback(YES, nil);
                 [self release];
                 return;
             }
             secret = [arg dataUsingEncoding:NSUTF8StringEncoding];
 
-            requestToken = [[DWOTokenPair alloc] initWithToken:token secret:secret];
+            self->requestToken = [[DWOTokenPair alloc] initWithToken:token secret:secret];
             valid = YES;
+
+            if ( !outOfBand )
+                [pendingAuthorizations setObject:self forKey:[DWOClient encodeData:requestToken.token]];
 
             NSURL *url = [client authorizeURLForToken:requestToken];
             expireTimer = [[NSTimer scheduledTimerWithTimeInterval:VALIDITY
                                                             target:self
                                                           selector:@selector(tokenExpired:)
                                                           userInfo:nil repeats:NO] retain];
-            oobCallback(self,url);
-        } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-            [DWClient removePendingAuthorization:self];
+
+            [operation release];
+            operation = nil;
+
+            beginCallback(self,url);
+        } failure:^(AFHTTPRequestOperation *iOp_, NSError *error) {            
+            [operation release];
+            operation = nil;
+
+            if ( accessCallback != nil )
+                accessCallback(YES,nil);
             [self release];
-            NSLog(@"Failure");
         }];
     }
     return self;
@@ -109,6 +132,8 @@ static const NSTimeInterval VALIDITY = 600 * 2; // Double the valididty.
 
 -(void)tokenExpired:(NSTimer*)theTimer {
     valid = NO;
+    if ( requestToken )
+        [pendingAuthorizations removeObjectForKey:[DWOClient encodeData:requestToken.token]];
     if ( accessCallback != nil )
         accessCallback(YES,nil);
     [expireTimer release];
@@ -116,16 +141,78 @@ static const NSTimeInterval VALIDITY = 600 * 2; // Double the valididty.
 }
 
 -(void)start {
+    // This holds a copy to itself while it's running
+    [self retain];
+
+    [operation start];
+}
+
+-(void)abort {
+    if ( accessCallback )
+        Block_release(accessCallback);
+    if ( beginCallback )
+        Block_release(beginCallback);
+    accessCallback = nil;
+    beginCallback = nil;
+    valid = NO;
+}
+
+
++(void)gotVerifier:(NSString*)verifier forToken:(NSData*)token {
+    DWPendingAuthorization *pend = [pendingAuthorizations objectForKey:[DWOClient encodeData:token]];
+    if ( pend != nil ) [pend gotVerifier:verifier];
+}
+
+-(void)gotVerifier:(NSString*)verifier {
+    if ( valid == NO )
+        return;
+
+    if ( requestToken )
+        [pendingAuthorizations removeObjectForKey:[DWOClient encodeData:requestToken.token]];
+
+    AFHTTPRequestOperation *op_ = [client accessTokenOperationWithRequest:requestToken andVerifier:verifier];
+    if ( operation != nil ) {
+        [operation release];
+        operation = nil;
+    }
+    operation = [op_ retain];
+    [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *iOp_, id responseObject) {
+        if ( accessCallback == nil ) {
+            [self release];
+            return;
+        }
+        
+        if ( ! [responseObject isKindOfClass:[NSData class]] ) {
+            accessCallback(YES,nil);
+            [self release];
+            return;
+        }
+        NSData *dv = (NSData*)responseObject;
+        NSString *sv = [[NSString alloc] initWithData:dv encoding:NSUTF8StringEncoding];
+        NSDictionary *args = [sv dictionaryFromQueryString];
+        [sv release];
+        [self release];
+
+        [operation release];
+        operation = nil;
+    } failure:^(AFHTTPRequestOperation *iOp_, NSError *error) {            
+        [operation release];
+        operation = nil;
+
+        if ( accessCallback != nil )
+            accessCallback(YES,nil);
+        [self release];
+    }];
     [operation start];
 }
 
 -(void)dealloc {
     if ( accessCallback )
         Block_release(accessCallback);
-    if ( oobCallback )
-        Block_release(oobCallback);
+    if ( beginCallback )
+        Block_release(beginCallback);
     accessCallback = nil;
-    oobCallback = nil;
+    beginCallback = nil;
 
     if ( expireTimer ) {
         [expireTimer invalidate];
@@ -137,6 +224,9 @@ static const NSTimeInterval VALIDITY = 600 * 2; // Double the valididty.
     [operation release];
     client = nil;
     operation = nil;
+    
+    if ( requestToken )
+        [pendingAuthorizations removeObjectForKey:[DWOClient encodeData:requestToken.token]];
 
     [requestToken release];
     requestToken = nil;

@@ -33,24 +33,30 @@
 @class DWPendingAuthorization;
 
 typedef void (^DWAccessTokenCallback)(bool success, DWOTokenPair *pair);
-typedef void (^DWBeginOOBCallback)(DWPendingAuthorization * auth, NSURL *url);
+typedef void (^DWBeginAccessTokenCallback)(DWPendingAuthorization * auth, NSURL *url);
 
 @interface DWClient : NSObject {
     @private
     NSString *baseEndpoint;
     BOOL sslEnabled;
     DWOTokenPair *tokenPair;
+
+    NSString *appProtocol;
 }
 
 @property (nonatomic,readonly,copy) NSString *baseEndpoint;
 @property (nonatomic,readonly,assign) BOOL sslEnabled;
+@property (nonatomic,readwrite,copy) NSString *appProtocol;
 
 - (id)initWithEndpoint:(NSString*)endpoint ssl:(BOOL)ssl tokenPair:(DWOTokenPair*)tokenPair;
 
-- (NSURL *)getAppURLWithPath:(NSString*)path;
-- (NSURL *)authorizeURLForToken:(DWOTokenPair*)pair;
+- (void)setAppProtocol:(NSString*)protocol;
 
-- (void)authorizeUser:(DWAccessTokenCallback)callback;
-- (void)authorizeUser:(DWAccessTokenCallback)callback outOfBand:(DWBeginOOBCallback)oobCallback;
+- (NSURL *)getAppURLWithPath:(NSString*)path;
+
+- (void)authorizeUser:(DWAccessTokenCallback)callback begin:(DWBeginAccessTokenCallback)beginCallback;
+- (void)authorizeUser:(DWAccessTokenCallback)callback outOfBand:(DWBeginAccessTokenCallback)oobCallback;
+
+-(BOOL)maybeHandleOpenURL:(NSURL *)url;
 
 @end

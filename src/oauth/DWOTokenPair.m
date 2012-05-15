@@ -35,8 +35,8 @@
 
 -(id)initWithToken:(NSData*)token_ secret:(NSData*)secret_ {
     if ( (self = [super init] ) ) {
-        token = token_;
-        secret = secret_;
+        token = [token_ retain];
+        secret = [secret_ retain];
     }
     return self;
 }

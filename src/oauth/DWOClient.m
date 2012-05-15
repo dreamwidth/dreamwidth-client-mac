@@ -81,6 +81,13 @@
     return req;
 }
 
++(DWORequest *) accessTokenRequestFromURL:(NSURL*)url consumer:(DWOTokenPair*)consumerPair
+                              requestToken:(DWOTokenPair*)requestPair verifier:(NSString*)verifier {
+    DWORequest *req = [[[DWORequest alloc] initWithURL:url consumerToken:consumerPair accessToken:requestPair method:@"GET"] autorelease];
+    [req setObject:verifier forOAuthParameter:@"oauth_verifier"];
+    return req; 
+}
+
 +(NSString *) createRandomStringOfLength:(size_t)len {
     static const char letter_set[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
     static const size_t letter_set_len = sizeof(letter_set)-1;

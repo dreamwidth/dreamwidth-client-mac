@@ -35,17 +35,24 @@
     DWClient *client;
 
     DWAccessTokenCallback accessCallback;
-    DWBeginOOBCallback oobCallback;
+    DWBeginAccessTokenCallback beginCallback;
     AFHTTPRequestOperation *operation;
 
     DWOTokenPair *requestToken;
     NSTimer *expireTimer;
 
     BOOL valid;
+    BOOL outOfBand;
 }
 
--(id)initWithClient:(DWClient*)client operation:(AFHTTPRequestOperation*)op accessCallback:(DWAccessTokenCallback)access
-           oobCallback:(DWBeginOOBCallback)oobCallback;
+-(id)initWithClient:(DWClient*)client operation:(AFHTTPRequestOperation*)op
+        accessCallback:(DWAccessTokenCallback)access
+         beginCallback:(DWBeginAccessTokenCallback)beginCallback
+             outOfBand:(BOOL)oob;
 -(void)start;
+-(void)abort;
+
+-(void)gotVerifier:(NSString*)verifier;
++(void)gotVerifier:(NSString*)verifier forToken:(NSData*)token;
 
 @end
