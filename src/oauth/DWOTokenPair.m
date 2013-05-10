@@ -33,6 +33,7 @@
 @synthesize token;
 @synthesize secret;
 
+//token data secrets initilaized
 -(id)initWithToken:(NSData*)token_ secret:(NSData*)secret_ {
     if ( (self = [super init] ) ) {
         token = [token_ retain];
@@ -41,6 +42,7 @@
     return self;
 }
 
+//deallocate used memory for the tokens
 -(void)dealloc {
     [token release];
     [secret release];

@@ -29,7 +29,7 @@
 #import <Foundation/Foundation.h>
 
 @interface NSString (QueryString)
-
+//dictionary function for the querrying
 -(NSDictionary*)dictionaryFromQueryString;
 
 @end

@@ -28,12 +28,13 @@
 
 #import <Foundation/Foundation.h>
 
-
+//token pair authorization functions
 @interface DWOTokenPair : NSObject {
     NSData *token;
     NSData *secret;
 }
 
+//token properties
 @property (nonatomic,retain,readonly) NSData *token;
 @property (nonatomic,retain,readonly) NSData *secret;
 

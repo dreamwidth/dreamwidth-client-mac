@@ -31,8 +31,10 @@
 @class DWPendingAuthorization;
 @class AFHTTPRequestOperation;
 
+// .h authorization interface
 @interface DWClient (Internal)
 
+//URL authorization functions
 - (NSURL *)authorizeURLForToken:(DWOTokenPair*)pair;
 - (AFHTTPRequestOperation*)accessTokenOperationWithRequest:(DWOTokenPair*)pair andVerifier:(NSString*)verifier;
 

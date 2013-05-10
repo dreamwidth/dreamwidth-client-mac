@@ -23,11 +23,13 @@
 
 #import <Foundation/Foundation.h>
 
+//functions for decoding 64 bit data
 void *NewBase64Decode(
 	const char *inputBuffer,
 	size_t length,
 	size_t *outputLength);
 
+//functions for setting up 64-bit encoding 
 char *NewBase64Encode(
 	const void *inputBuffer,
 	size_t length,
@@ -36,6 +38,7 @@ char *NewBase64Encode(
 
 @interface NSData (Base64)
 
+//get data from the 64-bit format and encode it
 + (NSData *)dataFromBase64String:(NSString *)aString;
 - (NSString *)base64EncodedString;
 

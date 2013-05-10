@@ -30,6 +30,7 @@
 
 @implementation NSString (QueryString)
 
+//implementation of adding a query parameter to a url
 // http://stackoverflow.com/questions/6309698/objective-c-how-to-add-query-parameter-to-nsurl
 -(NSDictionary*)dictionaryFromQueryString {
     NSArray *components = [self componentsSeparatedByString:@"&"];

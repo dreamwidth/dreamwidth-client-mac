@@ -43,6 +43,7 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
 
 @synthesize url;
 
+//initialize the URL for the consumer - consumer methods
 -(id)initWithURL:(NSURL*)url_ consumerToken:(DWOTokenPair*)consumer_ method:(NSString*)method_ {
     return [self initWithURL:url_
                consumerToken:consumer_
@@ -52,6 +53,8 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
              extraParameters:nil];
 }
 
+
+//URL authorization access methods
 -(id)initWithURL:(NSURL*)url_ consumerToken:(DWOTokenPair*)consumer_ accessToken:(DWOTokenPair*)access_
           method:(NSString*)method_ {
     return [self initWithURL:url_
@@ -62,6 +65,7 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
              extraParameters:nil]; 
 }
 
+//Init the URL for the parameters.
 -(id)initWithURL:(NSURL*)url_
    consumerToken:(DWOTokenPair*)consumer_
      accessToken:(DWOTokenPair*)access_
@@ -115,20 +119,24 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
     return self;
 }
 
+//authorizxation paramters for the objects - setobjects
 -(void)setObject:(id)object forOAuthParameter:(NSString*)key_ {
     [oauth_params removeObjectForKey:OAUTH_SIGNATURE_KEY];
     [oauth_params setObject:object forKey:key_];
 }
 
+//set object parameters for the keys
 -(void)setObject:(id)object forParameter:(NSString*)key_ {
     [oauth_params removeObjectForKey:OAUTH_SIGNATURE_KEY];
     [params setObject:object forKey:key_];
 }
 
+//add hash for the strings enterred
 -(void)addBodyHashForString:(NSString*)body {
     [self addBodyHashForData:[body dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
+//add hash for the data enterred into the body
 -(void)addBodyHashForData:(NSData*)body {
     [oauth_params removeObjectForKey:OAUTH_SIGNATURE_KEY];
 
@@ -142,6 +150,7 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
     [oauth_params setObject:[hash base64EncodedString] forKey:@"oauth_body_hash"];
 }
 
+//hash dictionary for the parameters
 -(NSMutableDictionary*)allParamaters_ {
     NSMutableDictionary *ov = [params mutableCopy];
     for ( NSString *key_ in [oauth_params allKeys] )
@@ -149,16 +158,19 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
     return [ov autorelease];
 }
 
+//dictionary for the parameters
 -(NSDictionary*)allParamaters {
     if ( ! [self signed] )
         [self sign];
     return [self allParamaters_];
 }
 
+//dictionary for the extra paramters that are chosen by the user
 -(NSDictionary*)extraParamaters {
     return [[params copy] autorelease];
 }
 
+//header authorization functions
 -(NSString*)authorizationHeader {
     if ( ! [self signed] )
         [self sign];
@@ -180,6 +192,7 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
     return [NSString stringWithFormat:@"OAauth %@",outString];
 }
 
+//string query functions
 -(NSString*)queryString {
     if ( ! [self signed] )
         [self sign];
@@ -201,6 +214,7 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
     return outString;
 }
 
+//signature string for array parameters
 -(NSString*)signatureString {
     NSDictionary *dict = [self allParamaters_];
     NSArray *keyArray = [dict allKeys];
@@ -222,6 +236,7 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
     return [baseString stringByAppendingFormat:@"&%@", [DWOClient encodeString:rv]];
 }
 
+//refreshing function for the connection object
 -(void)refresh {
     NSDate *date = [NSDate date];
     long timestamp = (long)[date timeIntervalSince1970];
@@ -233,6 +248,7 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
     [oauth_params removeObjectForKey:OAUTH_SIGNATURE_KEY];
 }
 
+//create signature function
 -(NSString*)signature {
     unsigned char cHMAC[CC_SHA1_DIGEST_LENGTH];
 
@@ -245,6 +261,7 @@ static NSString * const OAUTH_SIGNATURE_KEY = @"oauth_signature";
     return [data base64EncodedString];
 }
 
+//signing the objects for the authorization.
 -(void)sign {
     [self refresh];
     [oauth_params setObject:[self signature] forKey:OAUTH_SIGNATURE_KEY];
