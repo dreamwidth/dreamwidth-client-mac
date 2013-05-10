@@ -25,6 +25,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  */
+ 
+ //.h ile containing information about the client and connection details
 
 #import <Foundation/Foundation.h>
 
@@ -35,6 +37,7 @@
 typedef void (^DWAccessTokenCallback)(bool success, DWOTokenPair *pair);
 typedef void (^DWBeginAccessTokenCallback)(DWPendingAuthorization * auth, NSURL *url);
 
+//interface for the connection between the client and object interface.
 @interface DWClient : NSObject {
     @private
     NSString *baseEndpoint;
@@ -44,6 +47,7 @@ typedef void (^DWBeginAccessTokenCallback)(DWPendingAuthorization * auth, NSURL 
     NSString *appProtocol;
 }
 
+//properties for the connection protocols
 @property (nonatomic,readonly,copy) NSString *baseEndpoint;
 @property (nonatomic,readonly,assign) BOOL sslEnabled;
 @property (nonatomic,readwrite,copy) NSString *appProtocol;
@@ -54,6 +58,7 @@ typedef void (^DWBeginAccessTokenCallback)(DWPendingAuthorization * auth, NSURL 
 
 - (NSURL *)getAppURLWithPath:(NSString*)path;
 
+//authorization functions
 - (void)authorizeUser:(DWAccessTokenCallback)callback begin:(DWBeginAccessTokenCallback)beginCallback;
 - (void)authorizeUser:(DWAccessTokenCallback)callback outOfBand:(DWBeginAccessTokenCallback)oobCallback;
 
