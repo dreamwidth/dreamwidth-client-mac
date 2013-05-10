@@ -31,11 +31,13 @@
 
 @implementation DWOClient
 
+//encoding strings for data
 +(NSString *) encodeString:(NSString*)string {
     return [self encodeData:[string dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
 // FIXME: there may be a better way to do this.
+//encodes data from the raw data enterred in the forms.
 +(NSString *) encodeData:(NSData*)data {
     size_t len = [data length];
     unsigned char *rawData = (unsigned char *)[data bytes];
@@ -61,6 +63,7 @@
     return rv;
 }
 
+//encode object details for the dreamwidth clients
 +(NSString *) encodeObject:(id)object {
     if ( object == nil ) {
         return nil;
@@ -75,12 +78,15 @@
     }
 }
 
+
+//token requesting details from the URL defined by the client
 +(DWORequest *) requestTokenRequestFromURL:(NSURL*)url consumer:(DWOTokenPair*)consumerPair callback:(NSString*)callback; {
     DWORequest *req = [[[DWORequest alloc] initWithURL:url consumerToken:consumerPair method:@"GET"] autorelease];
     [req setObject:callback forOAuthParameter:@"oauth_callback"];
     return req;
 }
 
+//function to access tokens from the requested URL
 +(DWORequest *) accessTokenRequestFromURL:(NSURL*)url consumer:(DWOTokenPair*)consumerPair
                               requestToken:(DWOTokenPair*)requestPair verifier:(NSString*)verifier {
     DWORequest *req = [[[DWORequest alloc] initWithURL:url consumerToken:consumerPair accessToken:requestPair method:@"GET"] autorelease];
@@ -88,6 +94,7 @@
     return req; 
 }
 
+//create random string of varied length
 +(NSString *) createRandomStringOfLength:(size_t)len {
     static const char letter_set[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_";
     static const size_t letter_set_len = sizeof(letter_set)-1;
