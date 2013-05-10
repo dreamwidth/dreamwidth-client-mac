@@ -30,6 +30,7 @@
 
 @class DWOTokenPair;
 
+//dreamwidth request interface
 @interface DWORequest : NSObject {
     @private
     NSMutableDictionary *oauth_params;
@@ -40,29 +41,36 @@
     NSString *baseString;
 }
 
+//properties for the request: the URL and the signature string
 @property (readonly,nonatomic) NSURL *url;
 @property (readonly,nonatomic) NSString* signatureString;
 
+//URL tokend for the consumer
 -(id)initWithURL:(NSURL*)url consumerToken:(DWOTokenPair*)consumer method:(NSString*)method;
 -(id)initWithURL:(NSURL*)url consumerToken:(DWOTokenPair*)consumer accessToken:(DWOTokenPair*)access
           method:(NSString*)method;
 -(id)initWithURL:(NSURL*)url consumerToken:(DWOTokenPair*)consumer accessToken:(DWOTokenPair*)access
           method:(NSString*)method oauthParameters:(NSDictionary*)oauth_dict extraParameters:(NSDictionary*)dict;
 
+//authorization parameter
 -(void)setObject:(id)object forOAuthParameter:(NSString*)key;
 -(void)setObject:(id)object forParameter:(NSString*)key;
 
+//refresh functions
 -(void)refresh;
 -(void)sign;
 -(BOOL)signed;
 
+//signature parameteres 
 -(NSString*)signatureString;
 -(NSDictionary*)allParamaters;
 -(NSDictionary*)extraParamaters;
 
+//authorization headers
 -(NSString*)authorizationHeader;
 -(NSString*)queryString;
 
+//add hash functions for the body text
 -(void)addBodyHashForString:(NSString*)body;
 -(void)addBodyHashForData:(NSData*)body;
 
