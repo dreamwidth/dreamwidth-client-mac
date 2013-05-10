@@ -26,6 +26,7 @@
  *
  */
 
+//.h file containing details and functions for the Pending authorizxations
 #import <Foundation/Foundation.h>
 #import "DWClient.h"
 
@@ -44,7 +45,7 @@
     BOOL valid;
     BOOL outOfBand;
 }
-
+// functions to setup communication, how to connect with client and get verified.
 -(id)initWithClient:(DWClient*)client operation:(AFHTTPRequestOperation*)op
         accessCallback:(DWAccessTokenCallback)access
          beginCallback:(DWBeginAccessTokenCallback)beginCallback
