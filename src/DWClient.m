@@ -55,10 +55,12 @@ static NSDictionary *pendingAuthorizations = nil;
 @synthesize sslEnabled;
 @synthesize appProtocol;
 
+//basic initailization.
 +(void)initialize {
     pendingAuthorizations = [[NSDictionary alloc] init];
 }
 
+//enable endpoint  for tokens
 - (id)initWithEndpoint:(NSString*)endpoint ssl:(BOOL)ssl tokenPair:(DWOTokenPair*)tokenPair_ {
     if ( (self = [super init]) ) {
         baseEndpoint = [endpoint copy];
@@ -69,12 +71,14 @@ static NSDictionary *pendingAuthorizations = nil;
     return self;
 }
 
+//for mac client, get the connection URL
 - (NSURL *)getAppURLWithPath:(NSString*)path {
     return [[[NSURL alloc] initWithScheme:(sslEnabled ? @"https" : @"http")
                                      host:baseEndpoint
                                      path:path] autorelease];
 }
 
+//Now that you have the URL, authorize callback for client
 - (void)authorizeUser:(DWAccessTokenCallback)callback begin:(DWBeginAccessTokenCallback)beginCallback {
     if ( appProtocol == nil )
         return callback(YES,nil);
@@ -83,6 +87,7 @@ static NSDictionary *pendingAuthorizations = nil;
     NSString *callbackPath = [NSString stringWithFormat:@"%@://oauth_callback",appProtocol];
     DWORequest *oReq = [DWOClient requestTokenRequestFromURL:url consumer:tokenPair callback:callbackPath];
     
+    //URL connection details
     url = [oReq.url URLByAppendingQueryString:oReq.queryString];
     NSURLRequest *uReq = [NSURLRequest requestWithURL:url cachePolicy:NSURLCacheStorageNotAllowed timeoutInterval:30];
     
@@ -97,6 +102,7 @@ static NSDictionary *pendingAuthorizations = nil;
     [operation release];
 }
 
+//Now that connection has been established, establish authorization for the URL.
 - (void)authorizeUser:(DWAccessTokenCallback)callback outOfBand:(DWBeginAccessTokenCallback)oobCallback {
     NSURL *url = [self getAppURLWithPath:REQUEST_ENDPOINT];
     DWORequest *oReq = [DWOClient requestTokenRequestFromURL:url consumer:tokenPair callback:@"oob"];
@@ -117,6 +123,7 @@ static NSDictionary *pendingAuthorizations = nil;
     [operation release];
 }
 
+//handle URL open operations
 -(BOOL)maybeHandleOpenURL:(NSURL *)url {
     if ( url == nil || appProtocol == nil ) return NO;
     if ( [url.scheme compare:appProtocol] != NSOrderedSame ) return NO;
@@ -142,6 +149,7 @@ static NSDictionary *pendingAuthorizations = nil;
     return NO;
 }
 
+//deallocation  for breakpoints, and release of connection in memory
 - (void)dealloc {
     [baseEndpoint release];
     baseEndpoint = nil;
@@ -159,6 +167,7 @@ static NSDictionary *pendingAuthorizations = nil;
 
 @implementation DWClient (Internal)
 
+//authorization of URL with connection with token
 - (NSURL *)authorizeURLForToken:(DWOTokenPair*)pair {
     NSURL *rv = [self getAppURLWithPath:AUTHORIZE_ENDPOINT];
     NSString *args = [NSString stringWithFormat:@"oauth_token=%@",
@@ -166,6 +175,7 @@ static NSDictionary *pendingAuthorizations = nil;
     return [rv URLByAppendingQueryString:args];
 }
 
+//Access toeken operations, allow authorization.
 - (AFHTTPRequestOperation*)accessTokenOperationWithRequest:(DWOTokenPair*)pair andVerifier:(NSString*)verifier {
     NSURL *url = [self getAppURLWithPath:ACCESS_ENDPOINT];
     DWORequest *oReq = [DWOClient accessTokenRequestFromURL:url consumer:tokenPair requestToken:pair verifier:verifier];
