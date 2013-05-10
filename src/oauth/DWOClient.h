@@ -35,10 +35,12 @@
     
 }
 
+//encode details and data for the user
 +(NSString *) encodeString:(NSString*)string;
 +(NSString *) encodeData:(NSData*)data;
 +(NSString *) encodeObject:(id)object;
 
+//request tokens from the URL functions
 +(DWORequest *) requestTokenRequestFromURL:(NSURL*)url consumer:(DWOTokenPair*)consumerPair callback:(NSString*)callback;
 +(DWORequest *) accessTokenRequestFromURL:(NSURL*)url consumer:(DWOTokenPair*)consumerPair requestToken:(DWOTokenPair*)requestPair verifier:(NSString*)verifier;
 +(NSString *) createRandomStringOfLength:(size_t)len;
