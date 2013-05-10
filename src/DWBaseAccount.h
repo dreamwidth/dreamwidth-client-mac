@@ -31,6 +31,7 @@
 
 @protocol DWBaseAccount <NSObject>
 
+//properties for the username and token coommunication
 @required
 @property (nonatomic,retain,readonly) NSString *username;
 @property (nonatomic,retain,readonly) DWOTokenPair *tokenPair;
