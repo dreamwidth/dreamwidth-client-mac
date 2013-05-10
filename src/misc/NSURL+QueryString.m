@@ -30,6 +30,7 @@
 
 @implementation NSURL (Additions)
 
+//append url querying string 
 - (NSURL *)URLByAppendingQueryString:(NSString *)queryString {
     if (![queryString length]) {
         return self;
