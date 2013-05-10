@@ -42,10 +42,12 @@ static NSMutableDictionary *pendingAuthorizations = nil;
 
 @implementation DWPendingAuthorization
 
+//Basic initialization to authorize connection
 +(void)initialize {
     pendingAuthorizations = [[NSMutableDictionary alloc] init];
 }
 
+//Authorization with client to allow client operations, over HTTP request server
 -(id)initWithClient:(DWClient*)client_ operation:(AFHTTPRequestOperation*)op
      accessCallback:(DWAccessTokenCallback)access_
       beginCallback:(DWBeginAccessTokenCallback)begin_
@@ -60,13 +62,13 @@ static NSMutableDictionary *pendingAuthorizations = nil;
         requestToken = nil;
         valid = NO;
         expireTimer = nil;
-
+        //If successful, proceed.
         [operation setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *iOp_, id responseObject) {
             if ( beginCallback == nil || accessCallback == nil ) {
                 [self release];
                 return;
             }
-
+            //If not successfull, Callback again
             if ( ! [responseObject isKindOfClass:[NSData class]] ) {
                 accessCallback(YES,nil);
                 [self release];
@@ -76,7 +78,7 @@ static NSMutableDictionary *pendingAuthorizations = nil;
             NSString *sv = [[NSString alloc] initWithData:dv encoding:NSUTF8StringEncoding];
             NSDictionary *args = [sv dictionaryFromQueryString];
             [sv release];
-
+            //Confirmation that the callback occurred.
             NSString *arg = [args objectForKey:@"oauth_callback_confirmed"];
 
             if ( arg == nil || [arg compare:@"true"] != NSOrderedSame ) {
@@ -84,7 +86,7 @@ static NSMutableDictionary *pendingAuthorizations = nil;
                 [self release];
                 return;
             }
-
+            //Now to authorization token communication for client
             NSData *token, *secret;
             arg = [args objectForKey:@"oauth_token"];
             if ( arg == nil ) {
@@ -93,7 +95,7 @@ static NSMutableDictionary *pendingAuthorizations = nil;
                 return;
             }
             token = [arg dataUsingEncoding:NSUTF8StringEncoding];
-            
+            //Confirm the "secret" communication between client and server
             arg = [args objectForKey:@"oauth_token_secret"];
             if ( arg == nil ) {
                 accessCallback(YES, nil);
@@ -101,10 +103,10 @@ static NSMutableDictionary *pendingAuthorizations = nil;
                 return;
             }
             secret = [arg dataUsingEncoding:NSUTF8StringEncoding];
-
+            //requesting token
             self->requestToken = [[DWOTokenPair alloc] initWithToken:token secret:secret];
             valid = YES;
-
+            //check for validity
             if ( !outOfBand )
                 [pendingAuthorizations setObject:self forKey:[DWOClient encodeData:requestToken.token]];
 
@@ -129,7 +131,7 @@ static NSMutableDictionary *pendingAuthorizations = nil;
     }
     return self;
 }
-
+//In case of valid experation of toekn, need to remove and request new token
 -(void)tokenExpired:(NSTimer*)theTimer {
     valid = NO;
     if ( requestToken )
@@ -140,6 +142,7 @@ static NSMutableDictionary *pendingAuthorizations = nil;
     expireTimer = nil;
 }
 
+//initialize start sequence
 -(void)start {
     // This holds a copy to itself while it's running
     [self retain];
@@ -147,6 +150,7 @@ static NSMutableDictionary *pendingAuthorizations = nil;
     [operation start];
 }
 
+//abort sequence for callbacks
 -(void)abort {
     if ( accessCallback )
         Block_release(accessCallback);
@@ -157,12 +161,13 @@ static NSMutableDictionary *pendingAuthorizations = nil;
     valid = NO;
 }
 
-
+//Verification for Pending requests
 +(void)gotVerifier:(NSString*)verifier forToken:(NSData*)token {
     DWPendingAuthorization *pend = [pendingAuthorizations objectForKey:[DWOClient encodeData:token]];
     if ( pend != nil ) [pend gotVerifier:verifier];
 }
 
+//Check validity of confirmation request.
 -(void)gotVerifier:(NSString*)verifier {
     if ( valid == NO )
         return;
@@ -206,6 +211,7 @@ static NSMutableDictionary *pendingAuthorizations = nil;
     [operation start];
 }
 
+//Memory deallocation for blocked token request
 -(void)dealloc {
     if ( accessCallback )
         Block_release(accessCallback);
